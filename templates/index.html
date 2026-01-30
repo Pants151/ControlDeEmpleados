@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block page_content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="jumbotron text-center" style="background: white; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+            <h1 style="color: #2c3e50;">Bienvenido, {{ current_user.nombre }}</h1>
+            <p class="lead text-muted">Panel de Gestión de Presencia e Incidencias</p>
+            <hr style="width: 100px; border-top: 3px solid #3498db;">
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-3">
+        <div class="panel panel-default text-center" style="border-radius: 10px; transition: 0.3s;">
+            <div class="panel-body">
+                <i class="fas fa-users fa-3x text-primary" style="margin-bottom: 15px;"></i>
+                <h4>Empleados</h4>
+                <a href="{{ url_for('listar_empleados') }}" class="btn btn-primary btn-block">Gestionar</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="panel panel-default text-center" style="border-radius: 10px;">
+            <div class="panel-body">
+                <i class="fas fa-history fa-3x text-success" style="margin-bottom: 15px;"></i>
+                <h4>Registros</h4>
+                <a href="{{ url_for('listar_registros') }}" class="btn btn-success btn-block">Ver Fichajes</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="panel panel-default text-center" style="border-radius: 10px;">
+            <div class="panel-body">
+                <i class="fas fa-exclamation-triangle fa-3x text-warning" style="margin-bottom: 15px;"></i>
+                <h4>Incidencias</h4>
+                <a href="{{ url_for('listar_incidencias') }}" class="btn btn-warning btn-block">Revisar</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="panel panel-default text-center" style="border-radius: 10px;">
+            <div class="panel-body">
+                <i class="fas fa-tools fa-3x text-info" style="margin-bottom: 15px;"></i>
+                <h4>Configuración</h4>
+                <a href="{{ url_for('configuracion_empresa') }}" class="btn btn-info btn-block">Empresa</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

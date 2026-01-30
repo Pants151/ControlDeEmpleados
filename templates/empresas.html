@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block page_content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="page-header">
+            <div class="pull-right">
+                <a href="{{ url_for('nueva_empresa') }}" class="btn btn-primary">
+                    <i class="fas fa-plus-circle"></i> Nueva Empresa
+                </a>
+            </div>
+            <h2><i class="fas fa-city text-primary"></i> Empresas Registradas</h2>
+        </div>
+
+        <div class="table-container">
+            <table class="table table-hover">
+                <thead style="background: #f1f1f1;">
+                    <tr>
+                        <th>Nombre Comercial</th>
+                        <th>CIF</th>
+                        <th>Localización (Lat, Lng)</th>
+                        <th>Radio (m)</th>
+                        <th>Contacto</th>
+                        <th class="text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for empresa in empresas %}
+                    <tr>
+                        <td>
+                            <i class="fas fa-building text-muted"></i> 
+                            <strong>{{ empresa.nombrecomercial }}</strong>
+                        </td>
+                        <td><code>{{ empresa.cif }}</code></td>
+                        <td>
+                            <span class="small">
+                                <i class="fas fa-map-marker-alt text-danger"></i> 
+                                {{ empresa.lat }}, {{ empresa.lng }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="label label-info">{{ empresa.radio }}m</span>
+                        </td>
+                        <td>
+                            <div class="small">
+                                <i class="fas fa-envelope"></i> {{ empresa.email }}<br>
+                                <i class="fas fa-phone"></i> {{ empresa.telefono }}
+                            </div>
+                        </td>
+                        <td class="text-right">
+                            <a href="{{ url_for('editar_empresa', id=empresa.id_empresa) }}" class="btn btn-info btn-sm">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{{ url_for('eliminar_empresa', id=empresa.id_empresa) }}" 
+                               class="btn btn-danger btn-sm"
+                               onclick="return confirm('¿Eliminar esta empresa y todos sus datos?')">
+                                <i class="fas fa-trash-alt"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block page_content %}
+<div class="row">
+    <div class="col-md-10 col-md-offset-1">
+        <div class="page-header">
+            <div class="pull-right">
+                <a href="{{ url_for('nuevo_rol') }}" class="btn btn-primary">
+                    <i class="fas fa-plus-circle"></i> Nuevo Rol
+                </a>
+            </div>
+            <h2><i class="fas fa-user-tag text-primary"></i> Gestión de Roles</h2>
+        </div>
+
+        <div class="table-container">
+            <table class="table table-hover">
+                <thead style="background: #f1f1f1;">
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre del Rol</th>
+                        <th class="text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rol in roles %}
+                    <tr>
+                        <td><span class="badge">{{ rol.id_rol }}</span></td>
+                        <td>
+                            <i class="fas fa-id-badge text-muted"></i> 
+                            <strong>{{ rol.nombre_rol }}</strong>
+                            {% if rol.nombre_rol in ['Administrador', 'Superadministrador'] %}
+                                <span class="label label-default" style="margin-left: 10px;">
+                                    <i class="fas fa-lock"></i> Sistema
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-right">
+                            {# Solo mostramos botones si NO es un rol de sistema #}
+                            {% if rol.nombre_rol not in ['Administrador', 'Superadministrador'] %}
+                                <a href="{{ url_for('editar_rol', id=rol.id_rol) }}" class="btn btn-info btn-sm" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{{ url_for('eliminar_rol', id=rol.id_rol) }}" 
+                                   class="btn btn-danger btn-sm" 
+                                   onclick="return confirm('¿Seguro que quieres eliminar este rol?')"
+                                   title="Eliminar">
+                                    <i class="fas fa-trash-alt"></i>
+                                </a>
+                            {% else %}
+                                {# Espacio vacío o indicación de que no es editable #}
+                                <small class="text-muted italic">No editable</small>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="text-muted small" style="margin-top: 15px;">
+            <i class="fas fa-shield-alt"></i> Los roles de sistema están protegidos. No se pueden editar ni eliminar para mantener la integridad de los permisos de la plataforma.
+        </p>
+    </div>
+</div>
+{% endblock %}

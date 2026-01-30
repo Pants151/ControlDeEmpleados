@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block page_content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="page-header">
+            <div class="pull-right">
+                <a href="{{ url_for('listar_horarios') }}" class="btn btn-default">
+                    <i class="fas fa-arrow-left"></i> Volver a Horarios
+                </a>
+            </div>
+            <h2><i class="fas fa-clock text-primary"></i> Detalle de Horario: {{ horario.nombre_horario }}</h2>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-7">
+        <div class="table-container">
+            <h4 style="margin-top: 0; font-weight: bold; color: #2c3e50;">
+                <i class="fas fa-list-ul"></i> Franjas Configuradas
+            </h4>
+            <hr>
+            <table class="table table-hover">
+                <thead style="background: #f1f1f1;">
+                    <tr>
+                        <th>Día</th>
+                        <th>Entrada</th>
+                        <th>Salida</th>
+                        <th class="text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for franja in horario.franjas %}
+                    <tr>
+                        <td><strong>{{ franja.dia.nombre }}</strong></td>
+                        <td><span class="label label-success">{{ franja.hora_entrada }}</span></td>
+                        <td><span class="label label-danger">{{ franja.hora_salida }}</span></td>
+                        <td class="text-right">
+                            <a href="{{ url_for('eliminar_franja', id_horario=horario.id_horario, id_dia=franja.id_dia) }}" 
+                               class="btn btn-danger btn-xs"
+                               onclick="return confirm('¿Eliminar esta franja horaria?')">
+                                <i class="fas fa-times"></i> Quitar
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">
+                            <p style="padding: 20px;">No hay franjas horarias definidas para este horario.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="col-md-5">
+        <div class="panel panel-default" style="border-radius: 10px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            <div class="panel-heading" style="background: #3498db; color: white; border-radius: 9px 9px 0 0;">
+                <h3 class="panel-title"><i class="fas fa-plus-circle"></i> Añadir Nueva Franja</h3>
+            </div>
+            <div class="panel-body" style="padding: 25px;">
+                <p class="small text-muted">Define los periodos de tiempo en los que el empleado podrá registrar su presencia.</p>
+                <form method="POST" class="form">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-calendar-day"></i> Día de la semana</label>
+                        {{ wtf.form_field(form.dia_id, label_visible=False) }}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label><i class="fas fa-sign-in-alt text-success"></i> Hora Entrada</label>
+                            {{ wtf.form_field(form.hora_entrada, label_visible=False, placeholder="HH:MM") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label><i class="fas fa-sign-out-alt text-danger"></i> Hora Salida</label>
+                            {{ wtf.form_field(form.hora_salida, label_visible=False, placeholder="HH:MM") }}
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    <button type="submit" class="btn btn-primary btn-block btn-lg">
+                        <i class="fas fa-save"></i> Guardar Franja
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="well" style="margin-top: 20px; border-left: 5px solid #f0ad4e;">
+            <p class="small">
+                <strong><i class="fas fa-exclamation-triangle"></i> Importante:</strong> 
+                El sistema validará que las horas no se solapen con otras ya existentes para el mismo día.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

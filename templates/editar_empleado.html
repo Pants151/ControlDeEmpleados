@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block page_content %}
+<div class="row">
+    <div class="col-md-8 col-md-offset-2">
+        <div class="panel panel-default" style="border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            <div class="panel-heading" style="background: #2c3e50; color: white; border-radius: 11px 11px 0 0;">
+                <h3 class="panel-title"><i class="fas fa-user-edit"></i> {{ titulo }}</h3>
+            </div>
+            <div class="panel-body" style="padding: 30px;">
+                <form method="POST" class="form">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="row">
+                        <div class="col-md-4">{{ wtf.form_field(form.nif) }}</div>
+                        <div class="col-md-4">{{ wtf.form_field(form.nombre) }}</div>
+                        <div class="col-md-4">{{ wtf.form_field(form.apellidos) }}</div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">{{ wtf.form_field(form.email) }}</div>
+                        <div class="col-md-6">{{ wtf.form_field(form.telef) }}</div>
+                    </div>
+
+                    <div class="well" style="background: #f9f9f9; border: 1px solid #eee;">
+                        <h5 style="margin-top: 0; font-weight: bold; color: #777;"><i class="fas fa-map-marked-alt"></i> Dirección y Ubicación</h5>
+                        {{ wtf.form_field(form.direccion) }}
+                        <div class="row">
+                            <div class="col-md-4">{{ wtf.form_field(form.localidad) }}</div>
+                            <div class="col-md-4">{{ wtf.form_field(form.cp) }}</div>
+                            <div class="col-md-4">{{ wtf.form_field(form.provincia) }}</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">{{ wtf.form_field(form.rol_id) }}</div>
+                        <div class="col-md-6">{{ wtf.form_field(form.horario_id) }}</div>
+                    </div>
+
+                    <div class="well" style="background: #fff5f5; border: 1px dashed #f2dede;">
+                        <p class="small text-danger"><i class="fas fa-key"></i> Deja en blanco la contraseña si no deseas cambiarla.</p>
+                        {{ wtf.form_field(form.password) }}
+                    </div>
+
+                    <hr>
+                    <div class="text-right">
+                        <a href="{{ url_for('listar_empleados') }}" class="btn btn-default">Cancelar</a>
+                        <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-save"></i> Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

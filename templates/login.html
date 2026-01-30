@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}Login RH{% endblock %}
+
+{% block page_content %}
+<div class="row" style="margin-top: 50px;">
+    <div class="col-md-4 col-md-offset-4">
+
+        <div class="panel panel-primary">
+
+            <div class="panel-heading">
+                <h3 class="panel-title">
+                    <span class="glyphicon glyphicon-lock" aria-hidden="true"></span> Acceso a Recursos Humanos
+                </h3>
+            </div>
+
+            <div class="panel-body">
+
+                <div class="text-center" style="margin-bottom: 20px;">
+                    <span class="glyphicon glyphicon-user" style="font-size: 60px; color: #337ab7;"></span>
+                    <p class="text-muted">Por favor, identifícate</p>
+                </div>
+
+                {% for message in get_flashed_messages() %}
+                <div class="alert alert-warning">
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    {{ message }}
+                </div>
+                {% endfor %}
+
+                {{ wtf.quick_form(form, button_map={'submit': 'primary btn-block'}) }}
+                </div>
+
+            <div class="panel-footer text-center">
+                <small class="text-muted">Solo personal autorizado</small>
+                <br><br>
+                <a href="{{ url_for('registro') }}" class="btn btn-default btn-sm">Crear Cuenta</a>
+            </div>
+
+        </div>
+        </div>
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block page_content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="page-header">
+            <h2><i class="fas fa-exclamation-circle text-warning"></i> Reportes de Incidencias</h2>
+        </div>
+
+        <div class="well">
+            <form method="GET" class="form-inline">
+                <select name="empleado_id" class="form-control">
+                    <option value="">Todos los empleados</option>
+                    {% for emp in empleados %}
+                        <option value="{{ emp.id_trabajador }}">{{ emp.nombre }} {{ emp.apellidos }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Filtrar</button>
+                <a href="{{ url_for('listar_incidencias') }}" class="btn btn-default">Limpiar</a>
+            </form>
+        </div>
+
+        <div class="table-container">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Fecha y Hora</th>
+                        <th>Empleado</th>
+                        <th>Descripción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inc in incidencias %}
+                    <tr>
+                        <td><i class="far fa-clock"></i> {{ inc.fecha_hora.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td><strong>{{ inc.empleado.nombre }}</strong></td>
+                        <td>{{ inc.descripcion }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center text-muted">No hay incidencias registradas.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

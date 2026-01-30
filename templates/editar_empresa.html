@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block page_content %}
+<div class="row">
+    <div class="col-md-8 col-md-offset-2">
+        <div class="panel panel-default" style="border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            <div class="panel-heading" style="background: #2c3e50; color: white; border-radius: 11px 11px 0 0;">
+                <h3 class="panel-title"><i class="fas fa-industry"></i> {{ titulo }}</h3>
+            </div>
+            <div class="panel-body" style="padding: 30px;">
+                <p class="text-muted"><i class="fas fa-info-circle"></i> Estos datos configuran el perímetro GPS para que los empleados puedan fichar.</p>
+                <hr>
+                <form method="POST" class="form">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="row">
+                        <div class="col-md-6">{{ wtf.form_field(form.nombrecomercial) }}</div>
+                        <div class="col-md-6">{{ wtf.form_field(form.cif) }}</div>
+                    </div>
+
+                    <div class="row" style="background: #eef7ff; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                        <div class="col-md-4">{{ wtf.form_field(form.lat) }}</div>
+                        <div class="col-md-4">{{ wtf.form_field(form.lng) }}</div>
+                        <div class="col-md-4">{{ wtf.form_field(form.radio) }}</div>
+                    </div>
+
+                    {{ wtf.form_field(form.domicilio) }}
+                    
+                    <div class="row">
+                        <div class="col-md-4">{{ wtf.form_field(form.localidad) }}</div>
+                        <div class="col-md-4">{{ wtf.form_field(form.cp) }}</div>
+                        <div class="col-md-4">{{ wtf.form_field(form.provincia) }}</div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">{{ wtf.form_field(form.email) }}</div>
+                        <div class="col-md-6">{{ wtf.form_field(form.telefono) }}</div>
+                    </div>
+
+                    <hr>
+                    <div class="text-right">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-save"></i> Actualizar Empresa
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
