@@ -4,7 +4,7 @@
     <div class="col-md-12">
         <div class="page-header">
             <div class="pull-right">
-                <a href="{{ url_for('nueva_empresa') }}" class="btn btn-primary">
+                <a href="{{ url_for('admin.nueva_empresa') }}" class="btn btn-primary">
                     <i class="fas fa-plus-circle"></i> Nueva Empresa
                 </a>
             </div>
@@ -47,10 +47,10 @@
                             </div>
                         </td>
                         <td class="text-right">
-                            <a href="{{ url_for('editar_empresa', id=empresa.id_empresa) }}" class="btn btn-info btn-sm">
+                            <a href="{{ url_for('admin.editar_empresa', id=empresa.id_empresa) }}" class="btn btn-info btn-sm">
                                 <i class="fas fa-edit"></i>
                             </a>
-                            <a href="{{ url_for('eliminar_empresa', id=empresa.id_empresa) }}" 
+                            <a href="{{ url_for('admin.eliminar_empresa', id=empresa.id_empresa) }}" 
                                class="btn btn-danger btn-sm"
                                onclick="return confirm('¿Eliminar esta empresa y todos sus datos?')">
                                 <i class="fas fa-trash-alt"></i>

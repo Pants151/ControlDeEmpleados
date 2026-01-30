@@ -1,9 +1,7 @@
-from flask_sqlalchemy import SQLAlchemy
+from app.extensions import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 from datetime import datetime
-
-db = SQLAlchemy()
 
 # Tabla de franjas
 class Franja(db.Model):
@@ -77,7 +75,7 @@ class Trabajador(UserMixin, db.Model):
     nif = db.Column(db.String(20), unique=True)
     nombre = db.Column(db.String(50))
     apellidos = db.Column(db.String(100))
-    passw = db.Column(db.String(200)) # Aumentamos longitud para el hash
+    passw = db.Column(db.String(200))
     email = db.Column(db.String(100), unique=True)
     telef = db.Column(db.String(20))
     direccion = db.Column(db.String(100))
@@ -92,11 +90,9 @@ class Trabajador(UserMixin, db.Model):
     idHorario = db.Column(db.Integer, db.ForeignKey('horario.id_horario'))
     idRol = db.Column(db.Integer, db.ForeignKey('rol.id_rol'))
 
-    # Metodos de Flask-Login
     def get_id(self):
         return (self.id_trabajador)
 
-    # Seguridad de contraseñas
     @property
     def password(self):
         raise AttributeError('La contraseña no es un atributo legible')

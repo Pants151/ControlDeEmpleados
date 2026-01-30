@@ -4,7 +4,7 @@
     <div class="col-md-12">
         <div class="page-header">
             <div class="pull-right">
-                <a href="{{ url_for('nuevo_horario') }}" class="btn btn-primary">
+                <a href="{{ url_for('admin.nuevo_horario') }}" class="btn btn-primary">
                     <i class="fas fa-plus"></i> Nuevo Horario
                 </a>
             </div>
@@ -33,13 +33,12 @@
                         </td>
                         <td>{{ h.descripcion }}</td>
                         <td class="text-right">
-                            <a href="{{ url_for('ver_horario', id=h.id_horario) }}" class="btn btn-success btn-sm" title="Ver Franjas">
+                            <a href="{{ url_for('admin.ver_horario', id=h.id_horario) }}" class="btn btn-success btn-sm" title="Ver Franjas">
                                 <i class="fas fa-eye"></i> Franjas
                             </a>
                             
-                            {# Lógica de protección para el Horario General #}
                             {% if h.nombre_horario != 'Horario General' %}
-                                <a href="{{ url_for('eliminar_horario', id=h.id_horario) }}" 
+                                <a href="{{ url_for('admin.eliminar_horario', id=h.id_horario) }}" 
                                    class="btn btn-danger btn-sm"
                                    onclick="return confirm('¿Seguro que quieres eliminar este horario?')">
                                     <i class="fas fa-trash"></i>
@@ -54,7 +53,7 @@
             </table>
         </div>
         <p class="text-muted small" style="margin-top: 15px;">
-            <i class="fas fa-info-circle"></i> El <strong>Horario General</strong> es el horario base del sistema y no puede ser eliminado para garantizar la integridad de las asignaciones de empleados.
+            <i class="fas fa-info-circle"></i> El <strong>Horario General</strong> es el horario base del sistema y no puede ser eliminado.
         </p>
     </div>
 </div>

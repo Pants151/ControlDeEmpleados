@@ -16,7 +16,7 @@
             <div class="panel-body">
                 <i class="fas fa-users fa-3x text-primary" style="margin-bottom: 15px;"></i>
                 <h4>Empleados</h4>
-                <a href="{{ url_for('listar_empleados') }}" class="btn btn-primary btn-block">Gestionar</a>
+                <a href="{{ url_for('admin.listar_empleados') }}" class="btn btn-primary btn-block">Gestionar</a>
             </div>
         </div>
     </div>
@@ -25,7 +25,7 @@
             <div class="panel-body">
                 <i class="fas fa-history fa-3x text-success" style="margin-bottom: 15px;"></i>
                 <h4>Registros</h4>
-                <a href="{{ url_for('listar_registros') }}" class="btn btn-success btn-block">Ver Fichajes</a>
+                <a href="{{ url_for('main.listar_registros') }}" class="btn btn-success btn-block">Ver Fichajes</a>
             </div>
         </div>
     </div>
@@ -34,7 +34,7 @@
             <div class="panel-body">
                 <i class="fas fa-exclamation-triangle fa-3x text-warning" style="margin-bottom: 15px;"></i>
                 <h4>Incidencias</h4>
-                <a href="{{ url_for('listar_incidencias') }}" class="btn btn-warning btn-block">Revisar</a>
+                <a href="{{ url_for('main.listar_incidencias') }}" class="btn btn-warning btn-block">Revisar</a>
             </div>
         </div>
     </div>
@@ -43,7 +43,7 @@
             <div class="panel-body">
                 <i class="fas fa-tools fa-3x text-info" style="margin-bottom: 15px;"></i>
                 <h4>Configuración</h4>
-                <a href="{{ url_for('configuracion_empresa') }}" class="btn btn-info btn-block">Empresa</a>
+                <a href="{{ url_for('admin.configuracion_empresa') }}" class="btn btn-info btn-block">Empresa</a>
             </div>
         </div>
     </div>

@@ -4,7 +4,7 @@
     <div class="col-md-10 col-md-offset-1">
         <div class="page-header">
             <div class="pull-right">
-                <a href="{{ url_for('nuevo_rol') }}" class="btn btn-primary">
+                <a href="{{ url_for('admin.nuevo_rol') }}" class="btn btn-primary">
                     <i class="fas fa-plus-circle"></i> Nuevo Rol
                 </a>
             </div>
@@ -34,19 +34,17 @@
                             {% endif %}
                         </td>
                         <td class="text-right">
-                            {# Solo mostramos botones si NO es un rol de sistema #}
                             {% if rol.nombre_rol not in ['Administrador', 'Superadministrador'] %}
-                                <a href="{{ url_for('editar_rol', id=rol.id_rol) }}" class="btn btn-info btn-sm" title="Editar">
+                                <a href="{{ url_for('admin.editar_rol', id=rol.id_rol) }}" class="btn btn-info btn-sm" title="Editar">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <a href="{{ url_for('eliminar_rol', id=rol.id_rol) }}" 
+                                <a href="{{ url_for('admin.eliminar_rol', id=rol.id_rol) }}" 
                                    class="btn btn-danger btn-sm" 
                                    onclick="return confirm('¿Seguro que quieres eliminar este rol?')"
                                    title="Eliminar">
                                     <i class="fas fa-trash-alt"></i>
                                 </a>
                             {% else %}
-                                {# Espacio vacío o indicación de que no es editable #}
                                 <small class="text-muted italic">No editable</small>
                             {% endif %}
                         </td>
@@ -56,7 +54,7 @@
             </table>
         </div>
         <p class="text-muted small" style="margin-top: 15px;">
-            <i class="fas fa-shield-alt"></i> Los roles de sistema están protegidos. No se pueden editar ni eliminar para mantener la integridad de los permisos de la plataforma.
+            <i class="fas fa-shield-alt"></i> Los roles de sistema están protegidos.
         </p>
     </div>
 </div>

@@ -6,7 +6,7 @@
     <div class="col-md-12">
         <div class="page-header">
             <div class="pull-right">
-                <a href="{{ url_for('listar_horarios') }}" class="btn btn-default">
+                <a href="{{ url_for('admin.listar_horarios') }}" class="btn btn-default">
                     <i class="fas fa-arrow-left"></i> Volver a Horarios
                 </a>
             </div>
@@ -38,7 +38,7 @@
                         <td><span class="label label-success">{{ franja.hora_entrada }}</span></td>
                         <td><span class="label label-danger">{{ franja.hora_salida }}</span></td>
                         <td class="text-right">
-                            <a href="{{ url_for('eliminar_franja', id_horario=horario.id_horario, id_dia=franja.id_dia) }}" 
+                            <a href="{{ url_for('admin.eliminar_franja', id_horario=horario.id_horario, id_dia=franja.id_dia) }}" 
                                class="btn btn-danger btn-xs"
                                onclick="return confirm('¿Eliminar esta franja horaria?')">
                                 <i class="fas fa-times"></i> Quitar
