@@ -47,13 +47,13 @@ def nuevo_empleado():
             # Asignación manual de FKs para evitar problemas de mapping
             empleado.idRol = form.rol_id.data
             empleado.idHorario = form.horario_id.data
-            empleado.idEmpresa = 1 
-            
+            empleado.idEmpresa = 1
+
             db.session.add(empleado)
             db.session.commit()
             flash('Empleado creado correctamente.')
             return redirect(url_for('empleados.listar_empleados'))
-            
+
     return render_template('editar_empleado.html', form=form, titulo="Nuevo Empleado")
 
 @empleados_bp.route('/empleados/editar/<int:id>', methods=['GET', 'POST'])
@@ -70,7 +70,7 @@ def editar_empleado(id):
         roles_permitidos = Rol.query.filter(Rol.nombre_rol.in_(['Administrador', 'Superadministrador'])).all()
     else:
         roles_permitidos = Rol.query.filter(Rol.nombre_rol.notin_(['Administrador', 'Superadministrador'])).all()
-        
+
     form.rol_id.choices = [(r.id_rol, r.nombre_rol) for r in roles_permitidos]
     form.horario_id.choices = [(h.id_horario, h.nombre_horario) for h in Horario.query.all()]
 
