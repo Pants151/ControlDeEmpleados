@@ -4,7 +4,7 @@
     <div class="col-md-10 col-md-offset-1">
         <div class="page-header">
             <div class="pull-right">
-                <a href="{{ url_for('admin.nuevo_rol') }}" class="btn btn-primary">
+                <a href="{{ url_for('roles.nuevo_rol') }}" class="btn btn-primary">
                     <i class="fas fa-plus-circle"></i> Nuevo Rol
                 </a>
             </div>
@@ -25,7 +25,7 @@
                     <tr>
                         <td><span class="badge">{{ rol.id_rol }}</span></td>
                         <td>
-                            <i class="fas fa-id-badge text-muted"></i> 
+                            <i class="fas fa-id-badge text-muted"></i>
                             <strong>{{ rol.nombre_rol }}</strong>
                             {% if rol.nombre_rol in ['Administrador', 'Superadministrador'] %}
                                 <span class="label label-default" style="margin-left: 10px;">
@@ -35,11 +35,11 @@
                         </td>
                         <td class="text-right">
                             {% if rol.nombre_rol not in ['Administrador', 'Superadministrador'] %}
-                                <a href="{{ url_for('admin.editar_rol', id=rol.id_rol) }}" class="btn btn-info btn-sm" title="Editar">
+                                <a href="{{ url_for('roles.editar_rol', id=rol.id_rol) }}" class="btn btn-info btn-sm" title="Editar">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <a href="{{ url_for('admin.eliminar_rol', id=rol.id_rol) }}" 
-                                   class="btn btn-danger btn-sm" 
+                                <a href="{{ url_for('roles.eliminar_rol', id=rol.id_rol) }}"
+                                   class="btn btn-danger btn-sm"
                                    onclick="return confirm('¿Seguro que quieres eliminar este rol?')"
                                    title="Eliminar">
                                     <i class="fas fa-trash-alt"></i>

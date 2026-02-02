@@ -26,12 +26,18 @@ def create_app(config_class=Config):
     # 3. Registrar los Blueprints
     from app.routes.auth import auth_bp
     from app.routes.main import main_bp
-    from app.routes.admin import admin_bp
+    from app.routes.empresas import empresas_bp
+    from app.routes.empleados import empleados_bp
+    from app.routes.roles import roles_bp
+    from app.routes.horarios import horarios_bp
     from app.routes.api import api_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
-    app.register_blueprint(admin_bp)
+    app.register_blueprint(empresas_bp)
+    app.register_blueprint(empleados_bp)
+    app.register_blueprint(roles_bp)
+    app.register_blueprint(horarios_bp)
     app.register_blueprint(api_bp)
 
     # 4. Crear tablas si no existen

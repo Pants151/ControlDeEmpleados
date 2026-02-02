@@ -4,12 +4,12 @@
     <div class="col-md-12">
         <div class="page-header">
             <div class="pull-right">
-                <a href="{{ url_for('admin.nuevo_empleado') }}" class="btn btn-primary">
+                <a href="{{ url_for('empleados.nuevo_empleado') }}" class="btn btn-primary">
                     <i class="fas fa-user-plus"></i> Añadir Empleado
                 </a>
             </div>
             <h2><i class="fas fa-users text-primary"></i> Gestión de Empleados</h2>
-            
+
             {# Información de contexto de la empresa #}
             {% if empresa_actual %}
                 <p class="text-muted">Empresa: <span class="label label-default">{{ empresa_actual.nombrecomercial }}</span></p>
@@ -29,8 +29,8 @@
                         <th>Teléfono</th>
                         <th>Dirección</th>
                         <th>Localidad</th>
-                        <th>CP</th>          
-                        <th>Provincia</th>   
+                        <th>CP</th>
+                        <th>Provincia</th>
                         <th>Rol</th>
                         <th>Horario</th>
                         <th class="text-right">Acciones</th>
@@ -46,21 +46,21 @@
                         <td>{{ emp.telef or '---' }}</td>
                         <td><small>{{ emp.direccion or '---' }}</small></td>
                         <td>{{ emp.localidad or '---' }}</td>
-                        <td>{{ emp.cp or '---' }}</td>        
-                        <td>{{ emp.provincia or '---' }}</td> 
-                        
+                        <td>{{ emp.cp or '---' }}</td>
+                        <td>{{ emp.provincia or '---' }}</td>
+
                         <td><span class="label label-info">{{ emp.rol.nombre_rol }}</span></td>
-                        
+
                         <td>
                             <span class="label label-default"><i class="far fa-clock"></i> {{ emp.horario.nombre_horario }}</span>
                         </td>
-                        
+
                         <td class="text-right" style="min-width: 100px;">
-                            <a href="{{ url_for('admin.editar_empleado', id=emp.id_trabajador) }}" class="btn btn-info btn-xs" title="Editar">
+                            <a href="{{ url_for('empleados.editar_empleado', id=emp.id_trabajador) }}" class="btn btn-info btn-xs" title="Editar">
                                 <i class="fas fa-pencil-alt"></i>
                             </a>
-                            <a href="{{ url_for('admin.eliminar_empleado', id=emp.id_trabajador) }}" 
-                               class="btn btn-danger btn-xs" 
+                            <a href="{{ url_for('empleados.eliminar_empleado', id=emp.id_trabajador) }}"
+                               class="btn btn-danger btn-xs"
                                onclick="return confirm('¿Estás seguro de que deseas eliminar este empleado?');"
                                title="Eliminar">
                                 <i class="fas fa-trash"></i>

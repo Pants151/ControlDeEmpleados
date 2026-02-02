@@ -11,7 +11,7 @@
             <div class="panel-body" style="padding: 30px;">
                 <form method="POST" class="form">
                     {{ form.hidden_tag() }}
-                    
+
                     <div class="row">
                         <div class="col-md-4">{{ wtf.form_field(form.nif) }}</div>
                         <div class="col-md-4">{{ wtf.form_field(form.nombre) }}</div>
@@ -45,7 +45,7 @@
 
                     <hr>
                     <div class="text-right">
-                        <a href="{{ url_for('admin.listar_empleados') }}" class="btn btn-default">Cancelar</a>
+                        <a href="{{ url_for('empleados.listar_empleados') }}" class="btn btn-default">Cancelar</a>
                         <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-save"></i> Guardar Cambios</button>
                     </div>
                 </form>
