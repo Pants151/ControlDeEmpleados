@@ -1,52 +1,114 @@
 {% extends "base.html" %}
 {% import "bootstrap/wtf.html" as wtf %}
 
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+<style>
+    #map { height: 400px; width: 100%; border-radius: 10px; margin-bottom: 20px; border: 1px solid #ddd; }
+</style>
+{% endblock %}
+
 {% block page_content %}
-<div class="row">
-    <div class="col-md-8 col-md-offset-2">
-        <div class="panel panel-default" style="border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-            <div class="panel-heading" style="background: #2c3e50; color: white; border-radius: 11px 11px 0 0;">
-                <h3 class="panel-title"><i class="fas fa-industry"></i> {{ titulo }}</h3>
+<div class="page-header">
+    <h2><i class="fas fa-map-marker-alt text-primary"></i> {{ titulo }}</h2>
+</div>
+
+<form method="POST">
+    {{ form.hidden_tag() }}
+    <div class="row">
+        <div class="col-md-6">
+            <div class="well">
+                {{ wtf.form_field(form.nombrecomercial) }}
+                {{ wtf.form_field(form.cif) }}
+                
+                <div class="row">
+                    <div class="col-md-6">{{ wtf.form_field(form.lat) }}</div>
+                    <div class="col-md-6">{{ wtf.form_field(form.lng) }}</div>
+                </div>
+                
+                {{ wtf.form_field(form.radio) }}
             </div>
-            <div class="panel-body" style="padding: 30px;">
-                <p class="text-muted"><i class="fas fa-info-circle"></i> Estos datos configuran el perímetro GPS para que los empleados puedan fichar.</p>
+            
+            <p class="text-muted small"><i class="fas fa-info-circle"></i> Haz clic en el mapa o usa el buscador para establecer la ubicación exacta.</p>
+            <div id="map"></div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="well">
+                <h4><i class="fas fa-address-card"></i> Datos de Contacto</h4>
                 <hr>
-                <form method="POST" class="form">
-                    {{ form.hidden_tag() }}
-                    
-                    <div class="row">
-                        <div class="col-md-6">{{ wtf.form_field(form.nombrecomercial) }}</div>
-                        <div class="col-md-6">{{ wtf.form_field(form.cif) }}</div>
-                    </div>
-
-                    <div class="row" style="background: #eef7ff; padding: 15px; border-radius: 8px; margin: 10px 0;">
-                        <div class="col-md-4">{{ wtf.form_field(form.lat) }}</div>
-                        <div class="col-md-4">{{ wtf.form_field(form.lng) }}</div>
-                        <div class="col-md-4">{{ wtf.form_field(form.radio) }}</div>
-                    </div>
-
-                    {{ wtf.form_field(form.domicilio) }}
-                    
-                    <div class="row">
-                        <div class="col-md-4">{{ wtf.form_field(form.localidad) }}</div>
-                        <div class="col-md-4">{{ wtf.form_field(form.cp) }}</div>
-                        <div class="col-md-4">{{ wtf.form_field(form.provincia) }}</div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6">{{ wtf.form_field(form.email) }}</div>
-                        <div class="col-md-6">{{ wtf.form_field(form.telefono) }}</div>
-                    </div>
-
-                    <hr>
-                    <div class="text-right">
-                        <button type="submit" class="btn btn-success btn-lg">
-                            <i class="fas fa-save"></i> Actualizar Empresa
-                        </button>
-                    </div>
-                </form>
+                {{ wtf.form_field(form.domicilio) }}
+                <div class="row">
+                    <div class="col-md-8">{{ wtf.form_field(form.localidad) }}</div>
+                    <div class="col-md-4">{{ wtf.form_field(form.cp) }}</div>
+                </div>
+                {{ wtf.form_field(form.provincia) }}
+                {{ wtf.form_field(form.email) }}
+                {{ wtf.form_field(form.telefono) }}
+            </div>
+            
+            <div class="text-right" style="margin-bottom: 30px;">
+                <a href="{{ url_for('main.index') }}" class="btn btn-default btn-lg">Cancelar</a>
+                {{ form.submit(class="btn btn-primary btn-lg") }}
             </div>
         </div>
     </div>
-</div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Coordenadas iniciales (de los campos o Madrid por defecto)
+        var initialLat = parseFloat(document.getElementById('lat').value) || 40.416775;
+        var initialLng = parseFloat(document.getElementById('lng').value) || -3.703790;
+        var initialRadio = parseInt(document.getElementById('radio').value) || 100;
+
+        var map = L.map('map').setView([initialLat, initialLng], 15);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        var marker = L.marker([initialLat, initialLng], { draggable: true }).addTo(map);
+        var circle = L.circle([initialLat, initialLng], {
+            radius: initialRadio,
+            color: '#3498db',
+            fillColor: '#3498db',
+            fillOpacity: 0.2
+        }).addTo(map);
+
+        // Buscador de direcciones
+        var geocoder = L.Control.geocoder({ defaultMarkGeocode: false })
+            .on('markgeocode', function(e) {
+                map.setView(e.geocode.center, 17);
+                updatePosition(e.geocode.center.lat, e.geocode.center.lng);
+            }).addTo(map);
+
+        function updatePosition(lat, lng) {
+            marker.setLatLng([lat, lng]);
+            circle.setLatLng([lat, lng]);
+            document.getElementById('lat').value = lat.toFixed(6);
+            document.getElementById('lng').value = lng.toFixed(6);
+        }
+
+        map.on('click', function(e) {
+            updatePosition(e.latlng.lat, e.latlng.lng);
+        });
+
+        marker.on('dragend', function() {
+            updatePosition(marker.getLatLng().lat, marker.getLatLng().lng);
+        });
+
+        document.getElementById('radio').addEventListener('input', function(e) {
+            circle.setRadius(parseInt(e.target.value) || 0);
+        });
+    });
+</script>
 {% endblock %}

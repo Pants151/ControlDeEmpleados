@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, SelectField
+from wtforms import StringField, PasswordField, SubmitField, SelectField, FloatField, IntegerField
 from wtforms.validators import DataRequired, Email, Length
 
 class LoginForm(FlaskForm):
@@ -10,9 +10,9 @@ class LoginForm(FlaskForm):
 class EmpresaForm(FlaskForm):
     nombrecomercial = StringField('Nombre Comercial', validators=[DataRequired(), Length(max=100)])
     cif = StringField('CIF', validators=[DataRequired(), Length(max=20)])
-    lat = StringField('Latitud (Ej: 36.5126)', validators=[DataRequired()])
-    lng = StringField('Longitud (Ej: -4.8845)', validators=[DataRequired()])
-    radio = StringField('Radio permitido (metros)', validators=[DataRequired()])
+    lat = FloatField('Latitud', validators=[DataRequired()], render_kw={'readonly': True})
+    lng = FloatField('Longitud', validators=[DataRequired()], render_kw={'readonly': True})
+    radio = IntegerField('Radio de acción (metros)', validators=[DataRequired()])
     domicilio = StringField('Domicilio', validators=[Length(max=100)])
     localidad = StringField('Localidad', validators=[Length(max=50)])
     cp = StringField('Código Postal', validators=[Length(max=10)])
