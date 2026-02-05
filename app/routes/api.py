@@ -66,11 +66,18 @@ class ApiFicharEntrada(MethodView):
 @api_bp.route('/presencia/salida')
 class ApiFicharSalida(MethodView):
     @jwt_required()
+    @api_bp.arguments(PresenceInputSchema)
     @api_bp.response(200, MessageSchema)
-    def post(self):
+    def post(self, data):
         user_id = int(get_jwt_identity())
-        registro = Registro.query.filter_by(id_trabajador=user_id, hora_salida=None).first()
 
+        # VALIDACIÓN GPS (Igual que en la entrada)
+        empresa = Empresa.query.get(1)
+        distancia = calcular_distancia(data.get('lat'), data.get('lng'), empresa.lat, empresa.lng)
+        if distancia > empresa.radio:
+            abort(400, message=f"Fuera de radio para fichar salida ({int(distancia)}m)")
+
+        registro = Registro.query.filter_by(id_trabajador=user_id, hora_salida=None).first()
         if not registro:
             abort(400, message="No tienes una entrada activa para cerrar")
 
