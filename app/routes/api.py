@@ -1,11 +1,12 @@
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask import request
 from datetime import datetime
 import pytz
 from app.extensions import db
 from app.models import Trabajador, Registro, Incidencia, Empresa, Franja
-from app.utils import calcular_distancia
+from app.utils import calcular_distancia, calcular_resumen_mensual
 from app.schemas import (LoginSchema, TokenSchema, PresenceInputSchema,
                          IncidenciaInputSchema, EstadoResponseSchema, MessageSchema)
 
@@ -137,3 +138,15 @@ class ApiObtenerEstado(MethodView):
             "fichado": True if en_activo else False,
             "ultima_entrada": ultima_entrada_local
         }
+
+
+@api_bp.route('/presencia/resumen-mensual')
+class ApiResumenMensual(MethodView):
+    @jwt_required()
+    def get(self):
+        user_id = int(get_jwt_identity())
+        # Si no se pasa mes, usamos el actual
+        mes = request.args.get('mes', datetime.now().strftime("%Y-%m"))
+
+        resumen = calcular_resumen_mensual(user_id, mes)
+        return resumen

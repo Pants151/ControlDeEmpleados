@@ -2,6 +2,8 @@ import math
 from functools import wraps
 from flask import abort
 from flask_login import current_user
+from datetime import datetime, timedelta
+from app.models import Registro, Franja, Trabajador
 
 # Función auxiliar para calcular duración
 def calcular_duracion(entrada, salida):
@@ -31,3 +33,50 @@ def superadmin_required(f):
             abort(403)
         return f(*args, **kwargs)
     return decorated_function
+
+# Función de utilidad que recorre los fichajes del mes y los compara con el horario teórico.
+def calcular_resumen_mensual(trabajador_id, mes_anio):
+    # mes_anio en formato "YYYY-MM"
+    inicio_mes = datetime.strptime(f"{mes_anio}-01", "%Y-%m-%d")
+
+    # Obtenemos todos los registros cerrados del trabajador en ese mes
+    registros = Registro.query.filter(
+        Registro.id_trabajador == trabajador_id,
+        Registro.hora_entrada >= inicio_mes,
+        Registro.hora_salida.isnot(None)
+    ).all()
+
+    total_trabajado_segundos = 0
+    total_teorico_segundos = 0
+
+    for reg in registros:
+        # Calcular tiempo real
+        duracion_real = reg.hora_salida - reg.hora_entrada
+        total_trabajado_segundos += duracion_real.total_seconds()
+
+        # Buscar el horario teórico para ese día de la semana
+        dia_semana = reg.hora_entrada.isoweekday() # 1=Lunes, 7=Domingo
+        trabajador = Trabajador.query.get(trabajador_id)
+
+        franja = Franja.query.filter_by(
+            id_horario=trabajador.idHorario,
+            id_dia=dia_semana
+        ).first()
+
+        if franja:
+            # Convertimos strings "HH:MM" a objetos tiempo para restar
+            h_ent = datetime.strptime(franja.hora_entrada, "%H:%M")
+            h_sal = datetime.strptime(franja.hora_salida, "%H:%M")
+            duracion_teorica = h_sal - h_ent
+            total_teorico_segundos += duracion_teorica.total_seconds()
+
+    horas_trabajadas = round(total_trabajado_segundos / 3600, 2)
+    horas_teoricas = round(total_teorico_segundos / 3600, 2)
+    horas_extra = max(0, round(horas_trabajadas - horas_teoricas, 2))
+
+    return {
+        "mes": mes_anio,
+        "horas_trabajadas": horas_trabajadas,
+        "horas_teoricas": horas_teoricas,
+        "horas_extra": horas_extra
+    }
