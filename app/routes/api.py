@@ -9,7 +9,7 @@ from app.utils import calcular_distancia
 from app.schemas import (LoginSchema, TokenSchema, PresenceInputSchema,
                          IncidenciaInputSchema, EstadoResponseSchema, MessageSchema)
 
-# El Blueprint ahora es de flask_smorest
+# El Blueprint es de flask_smorest
 api_bp = Blueprint('api', __name__, url_prefix='/api', description='Operaciones de la API móvil')
 timezone_esp = pytz.timezone('Europe/Madrid')
 
@@ -29,6 +29,23 @@ class ApiLogin(MethodView):
             )
             return {"token": access_token, "usuario": user.nombre}
         abort(401, message="Credenciales incorrectas")
+
+# Para que el móvil sepa dónde está la empresa y qué radio tiene configurado.
+@api_bp.route('/empresa/config')
+class ApiEmpresaConfig(MethodView):
+    @jwt_required()
+    def get(self):
+        # Obtenemos los datos de la empresa
+        empresa = Empresa.query.get(1)
+        if not empresa:
+            abort(404, message="Configuración de empresa no encontrada")
+
+        return {
+            "lat": empresa.lat,
+            "lng": empresa.lng,
+            "radio": empresa.radio,
+            "nombre": empresa.nombrecomercial
+        }
 
 @api_bp.route('/presencia/entrada')
 class ApiFicharEntrada(MethodView):
