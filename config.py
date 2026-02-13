@@ -8,3 +8,12 @@ class Config:
     SQLALCHEMY_POOL_RECYCLE = 299
     SQLALCHEMY_ENGINE_OPTIONS = {'pool_pre_ping': True}
     JWT_SECRET_KEY = 'mi_clave_super_secreta'
+
+    # Configuración de GMAIL
+    MAIL_SERVER = 'smtp.gmail.com'
+    MAIL_PORT = 587
+    MAIL_USE_TLS = True
+    MAIL_USE_SSL = False
+    MAIL_USERNAME = 'pantsoriginal22@gmail.com'
+    MAIL_PASSWORD = 'twgx gglt vsgb uxdk'
+    MAIL_DEFAULT_SENDER = 'pantsoriginal22@gmail.com'

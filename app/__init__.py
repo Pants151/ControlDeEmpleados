@@ -1,6 +1,6 @@
 from flask import Flask
 from config import Config
-from app.extensions import db, migrate, bootstrap, login_manager, jwt
+from app.extensions import db, migrate, bootstrap, login_manager, jwt, mail
 from flask_smorest import Api
 
 def create_app(config_class=Config):
@@ -21,6 +21,7 @@ def create_app(config_class=Config):
     bootstrap.init_app(app)
     login_manager.init_app(app)
     jwt.init_app(app)
+    mail.init_app(app)
 
     # Inicializamos Smorest
     api = Api(app)

@@ -48,6 +48,27 @@ class ApiEmpresaConfig(MethodView):
             "nombre": empresa.nombrecomercial
         }
 
+@api_bp.route('/auth/change-password', methods=['POST'])
+class ApiChangePassword(MethodView):
+    @jwt_required()
+    def post(self):
+        user_id = get_jwt_identity()
+        data = request.get_json()
+
+        current_password = data.get('current_password')
+        new_password = data.get('new_password')
+
+        trabajador = Trabajador.query.get(int(user_id))
+
+        if not trabajador or not trabajador.verify_password(current_password):
+            return {"msg": "La contraseña actual es incorrecta"}, 401
+
+        # El setter del modelo se encargará del hash automáticamente
+        trabajador.password = new_password
+        db.session.commit()
+
+        return {"msg": "Contraseña actualizada correctamente"}, 200
+
 @api_bp.route('/presencia/entrada')
 class ApiFicharEntrada(MethodView):
     @jwt_required()
@@ -129,9 +150,9 @@ class ApiObtenerEstado(MethodView):
 
         ultima_entrada_local = None
         if en_activo:
-            # 1. Obtenemos la hora UTC de la base de datos
+            # Obtenemos la hora UTC de la base de datos
             dt_utc = en_activo.hora_entrada.replace(tzinfo=pytz.UTC)
-            # 2. La convertimos a la zona horaria de Madrid definida arriba
+            # La convertimos a la zona horaria de Madrid definida arriba
             ultima_entrada_local = dt_utc.astimezone(timezone_esp)
 
         return {
@@ -192,7 +213,7 @@ class ApiAdminRegistros(MethodView):
                 minutes = (total_seconds % 3600) // 60
                 total_str = f"{hours}h {minutes}m"
             resultado.append({
-                "empleado": f"{r.empleado.nombre} {r.empleado.apellidos}",
+                "empleado": f"{r.propietario.nombre} {r.propietario.apellidos}",
                 "entrada": r.hora_entrada.strftime('%d/%m %H:%M'),
                 "salida": r.hora_salida.strftime('%H:%M') if r.hora_salida else "Activo",
                 "total": total_str

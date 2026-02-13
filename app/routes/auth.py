@@ -1,8 +1,12 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, session
+from flask import Blueprint, render_template, redirect, url_for, flash, session, request, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
-from app.extensions import db
+from flask_mail import Message
+from app.extensions import db, mail
 from app.models import Trabajador, Rol
 from app.forms import LoginForm, RegistroForm
+
+import random
+import string
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -37,7 +41,7 @@ def registro():
         return redirect(url_for('main.index'))
 
     form = RegistroForm()
-    # 1. CARGAR ROLES (Solo permitimos Admin y Superadmin para el registro público)
+    # CARGAR ROLES (Solo permitimos Admin y Superadmin para el registro público)
     roles_permitidos = Rol.query.filter(Rol.nombre_rol.in_(['Administrador', 'Superadministrador'])).all()
     form.rol_id.choices = [(r.id_rol, r.nombre_rol) for r in roles_permitidos]
 
@@ -53,7 +57,7 @@ def registro():
                 idHorario=1 # Horario por defecto
             )
             nuevo_usuario.idEmpresa = None # Sin empresa asignada aún
-            
+
             db.session.add(nuevo_usuario)
             db.session.commit()
 
@@ -61,6 +65,45 @@ def registro():
             return redirect(url_for('auth.login'))
 
     return render_template('registro.html', form=form)
+
+@auth_bp.route('/api/auth/forgot-password', methods=['POST'])
+def forgot_password():
+    data = request.get_json()
+    email = data.get('email')
+    print(f"DEBUG: Intentando recuperar para '{email}'")
+    if not email:
+        return jsonify({"msg": "El email es obligatorio"}), 400
+    # Buscamos al trabajador por su email
+    trabajador = Trabajador.query.filter(Trabajador.email.ilike(email)).first()
+    if trabajador:
+        print(f"DEBUG: Usuario ENCONTRADO: ID {trabajador.id_trabajador}")
+    else:
+        print(f"DEBUG: Usuario NO encontrado en la BD.") # <--- IMPORTANTE
+    if not trabajador:
+        # Por seguridad, si el email no existe, respondemos con éxito igual
+        return jsonify({"msg": "Si el email existe, se enviará una clave temporal"}), 200
+    # Generar una clave temporal aleatoria (letras y números)
+    nueva_clave = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+    # Actualizar la contraseña en la Base de Datos
+    trabajador.password = nueva_clave
+    try:
+        db.session.commit()
+        # Preparar el correo para Mailtrap
+        msg = Message(
+            subject="Recuperación de Contraseña - Control de Presencia",
+            recipients=[trabajador.email],
+            body=f"Hola {trabajador.nombre},\n\n"
+                 f"Has solicitado una recuperación de contraseña.\n"
+                 f"Tu nueva clave temporal es: {nueva_clave}\n\n"
+                 f"Por seguridad, cámbiala en cuanto accedas a la aplicación."
+        )
+        mail.send(msg)
+        print("DEBUG: Correo enviado correctamente a Mailtrap")
+        return jsonify({"msg": "Correo enviado con éxito"}), 200
+    except Exception as e:
+        db.session.rollback()
+        print(f"DEBUG ERROR: {str(e)}")
+        return jsonify({"msg": "Error interno al procesar la solicitud"}), 500
 
 @auth_bp.route('/logout')
 @login_required
