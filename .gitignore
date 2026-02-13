@@ -4,3 +4,4 @@ instance/
 .env
 venv/
 *.db
+firebase-service-account.json

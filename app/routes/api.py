@@ -1,7 +1,7 @@
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from flask import request
+from flask import request, jsonify
 from datetime import datetime
 import pytz
 from app.extensions import db
@@ -160,6 +160,37 @@ class ApiObtenerEstado(MethodView):
             "ultima_entrada": ultima_entrada_local
         }
 
+@api_bp.route('/usuario/actualizar-fcm', methods=['POST'])
+@jwt_required()
+def actualizar_fcm():
+    user_id = get_jwt_identity()
+    token_fcm = request.json.get('fcm_token')
+
+    if not token_fcm:
+        return jsonify({"msg": "Token requerido"}), 400
+
+    # Si este Token lo tenía otro usuario, se lo quitamos
+    db.session.query(Trabajador).filter(Trabajador.fcm_token == token_fcm).update({Trabajador.fcm_token: None})
+
+    # Asignamos el token al usuario actual
+    trabajador = Trabajador.query.get(int(user_id))
+    if trabajador:
+        trabajador.fcm_token = token_fcm
+        db.session.commit()
+        return jsonify({"msg": "Token actualizado correctamente"}), 200
+
+    return jsonify({"msg": "Usuario no encontrado"}), 404
+
+@api_bp.route('/usuario/logout-fcm', methods=['POST'])
+@jwt_required()
+def logout_fcm():
+    user_id = get_jwt_identity()
+    trabajador = Trabajador.query.get(int(user_id))
+    if trabajador:
+        trabajador.fcm_token = None # Borramos el token al salir
+        db.session.commit()
+        return jsonify({"msg": "Sesión de notificaciones cerrada"}), 200
+    return jsonify({"msg": "Error"}), 404
 
 @api_bp.route('/presencia/resumen-mensual')
 class ApiResumenMensual(MethodView):
@@ -213,7 +244,7 @@ class ApiAdminRegistros(MethodView):
                 minutes = (total_seconds % 3600) // 60
                 total_str = f"{hours}h {minutes}m"
             resultado.append({
-                "empleado": f"{r.propietario.nombre} {r.propietario.apellidos}",
+                "empleado": f"{r.empleado.nombre} {r.empleado.apellidos}",
                 "entrada": r.hora_entrada.strftime('%d/%m %H:%M'),
                 "salida": r.hora_salida.strftime('%H:%M') if r.hora_salida else "Activo",
                 "total": total_str

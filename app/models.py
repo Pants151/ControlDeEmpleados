@@ -82,6 +82,7 @@ class Trabajador(UserMixin, db.Model):
     localidad = db.Column(db.String(50))
     cp = db.Column(db.String(10))
     provincia = db.Column(db.String(50))
+    fcm_token = db.Column(db.String(255), nullable=True)
 
     registros = db.relationship('Registro', backref='empleado', lazy='dynamic', cascade="all, delete-orphan")
     incidencias = db.relationship('Incidencia', backref='empleado', lazy='dynamic', cascade="all, delete-orphan")
