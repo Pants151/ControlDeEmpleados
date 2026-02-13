@@ -150,3 +150,31 @@ class ApiResumenMensual(MethodView):
 
         resumen = calcular_resumen_mensual(user_id, mes)
         return resumen
+
+# Verifica que el usuario que hace la petición tenga el rol de "Administrador" y "Superadministrador"
+@api_bp.route('/admin/registros-recientes')
+class ApiAdminRegistros(MethodView):
+    @jwt_required()
+    def get(self):
+        user_id = int(get_jwt_identity())
+        trabajador_actual = Trabajador.query.get(user_id)
+
+        # Definimos los roles que tienen acceso a esta funcionalidad
+        roles_con_permiso = ['Administrador', 'Superadministrador']
+
+        # Verificamos si el nombre del rol del trabajador está en la lista
+        if trabajador_actual.rol.nombre not in roles_con_permiso:
+            return {"msg": "No tienes permisos de administración suficientes"}, 403
+
+        # Obtenemos los últimos 20 registros del sistema
+        registros = Registro.query.order_by(Registro.hora_entrada.desc()).limit(20).all()
+
+        resultado = []
+        for r in registros:
+            resultado.append({
+                "empleado": f"{r.trabajador.nombre} {r.trabajador.apellidos}",
+                "entrada": r.hora_entrada.strftime('%d/%m %H:%M'),
+                "salida": r.hora_salida.strftime('%H:%M') if r.hora_salida else "Activo"
+            })
+
+        return resultado
