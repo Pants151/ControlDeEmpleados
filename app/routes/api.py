@@ -2,7 +2,8 @@ from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from flask import request, jsonify
-from datetime import datetime
+from datetime import datetime, timedelta
+from sqlalchemy import func
 import pytz
 from app.extensions import db
 from app.models import Trabajador, Registro, Incidencia, Empresa, Franja
@@ -197,11 +198,16 @@ class ApiResumenMensual(MethodView):
     @jwt_required()
     def get(self):
         user_id = int(get_jwt_identity())
-        # Si no se pasa mes, usamos el actual
+        # Si no se pasa mes en la URL, usamos el actual
         mes = request.args.get('mes', datetime.now().strftime("%Y-%m"))
 
         resumen = calcular_resumen_mensual(user_id, mes)
-        return resumen
+
+        # Si la función devuelve un error (tupla), lo gestionamos
+        if isinstance(resumen, tuple):
+            return jsonify(resumen[0]), resumen[1]
+
+        return jsonify(resumen), 200
 
 # OBTENER LISTA DE TRABAJADORES
 @api_bp.route('/admin/trabajadores')
@@ -250,3 +256,20 @@ class ApiAdminRegistros(MethodView):
                 "total": total_str
             })
         return resultado
+
+@api_bp.route('/empresa/configuracion-geo', methods=['GET'])
+@jwt_required()
+def get_geo_config():
+    user_id = get_jwt_identity()
+    trabajador = Trabajador.query.get(int(user_id))
+
+    if not trabajador or not trabajador.empresa:
+        return jsonify({"msg": "Empresa no encontrada"}), 404
+
+    empresa = trabajador.empresa
+    return jsonify({
+        "latitud": empresa.lat,
+        "longitud": empresa.lng,
+        "radio": empresa.radio,
+        "nombre": empresa.nombrecomercial
+    }), 200
