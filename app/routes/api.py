@@ -2,8 +2,7 @@ from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from flask import request, jsonify
-from datetime import datetime, timedelta
-from sqlalchemy import func
+from datetime import datetime
 import pytz
 from app.extensions import db
 from app.models import Trabajador, Registro, Incidencia, Empresa, Franja
@@ -11,37 +10,35 @@ from app.utils import calcular_distancia, calcular_resumen_mensual
 from app.schemas import (LoginSchema, TokenSchema, PresenceInputSchema,
                          IncidenciaInputSchema, EstadoResponseSchema, MessageSchema)
 
-# El Blueprint es de flask_smorest
 api_bp = Blueprint('api', __name__, url_prefix='/api', description='Operaciones de la API móvil')
 timezone_esp = pytz.timezone('Europe/Madrid')
 
 @api_bp.route('/auth/login')
 class ApiLogin(MethodView):
-    @api_bp.arguments(LoginSchema) # Valida los datos de entrada automáticamente
-    @api_bp.response(200, TokenSchema) # Formatea la salida
+    @api_bp.arguments(LoginSchema)
+    @api_bp.response(200, TokenSchema)
     def post(self, login_data):
         email = login_data.get('email')
         password = login_data.get('password')
 
         user = Trabajador.query.filter((Trabajador.email == email) | (Trabajador.nif == email)).first()
+
         if user and user.verify_password(password):
             access_token = create_access_token(
                 identity=str(user.id_trabajador),
                 additional_claims={"rol": user.rol.nombre_rol}
             )
             return {"token": access_token, "usuario": user.nombre}
+
         abort(401, message="Credenciales incorrectas")
 
-# Para que el móvil sepa dónde está la empresa y qué radio tiene configurado.
 @api_bp.route('/empresa/config')
 class ApiEmpresaConfig(MethodView):
     @jwt_required()
     def get(self):
-        # Obtenemos los datos de la empresa
         empresa = Empresa.query.get(1)
         if not empresa:
             abort(404, message="Configuración de empresa no encontrada")
-
         return {
             "lat": empresa.lat,
             "lng": empresa.lng,
@@ -49,25 +46,25 @@ class ApiEmpresaConfig(MethodView):
             "nombre": empresa.nombrecomercial
         }
 
-@api_bp.route('/auth/change-password', methods=['POST'])
+@api_bp.route('/auth/change-password')
 class ApiChangePassword(MethodView):
     @jwt_required()
     def post(self):
         user_id = get_jwt_identity()
         data = request.get_json()
+        trabajador = Trabajador.query.get(int(user_id))
+
+        if trabajador is None:
+            return jsonify({"msg": "Su usuario ya no existe en el sistema"}), 404
 
         current_password = data.get('current_password')
         new_password = data.get('new_password')
 
-        trabajador = Trabajador.query.get(int(user_id))
-
-        if not trabajador or not trabajador.verify_password(current_password):
+        if not trabajador.verify_password(current_password):
             return {"msg": "La contraseña actual es incorrecta"}, 401
 
-        # El setter del modelo se encargará del hash automáticamente
         trabajador.password = new_password
         db.session.commit()
-
         return {"msg": "Contraseña actualizada correctamente"}, 200
 
 @api_bp.route('/presencia/entrada')
@@ -79,13 +76,14 @@ class ApiFicharEntrada(MethodView):
         user_id = int(get_jwt_identity())
         trabajador = Trabajador.query.get(user_id)
 
-        # Lógica de GPS
+        if trabajador is None:
+            return jsonify({"msg": "Su usuario ya no existe en el sistema"}), 404
+
         empresa = Empresa.query.get(1)
         distancia = calcular_distancia(data.get('lat'), data.get('lng'), empresa.lat, empresa.lng)
         if distancia > empresa.radio:
             abort(400, message=f"Fuera de radio ({int(distancia)}m)")
 
-        # Lógica de Horario
         ahora_local = datetime.now(timezone_esp)
         dia_semana = ahora_local.weekday() + 1
         hora_actual_str = ahora_local.strftime("%H:%M")
@@ -110,8 +108,11 @@ class ApiFicharSalida(MethodView):
     @api_bp.response(200, MessageSchema)
     def post(self, data):
         user_id = int(get_jwt_identity())
+        trabajador = Trabajador.query.get(int(user_id))
 
-        # VALIDACIÓN GPS (Igual que en la entrada)
+        if trabajador is None:
+            return jsonify({"msg": "Su usuario ya no existe en el sistema"}), 404
+
         empresa = Empresa.query.get(1)
         distancia = calcular_distancia(data.get('lat'), data.get('lng'), empresa.lat, empresa.lng)
         if distancia > empresa.radio:
@@ -132,6 +133,11 @@ class ApiRegistrarIncidencia(MethodView):
     @api_bp.response(201, MessageSchema)
     def post(self, data):
         user_id = int(get_jwt_identity())
+        trabajador = Trabajador.query.get(int(user_id))
+
+        if trabajador is None:
+            return jsonify({"msg": "Su usuario ya no existe en el sistema"}), 404
+
         incidencia = Incidencia(
             id_trabajador=user_id,
             descripcion=data.get('descripcion'),
@@ -148,12 +154,9 @@ class ApiObtenerEstado(MethodView):
     def get(self):
         user_id = int(get_jwt_identity())
         en_activo = Registro.query.filter_by(id_trabajador=user_id, hora_salida=None).first()
-
         ultima_entrada_local = None
         if en_activo:
-            # Obtenemos la hora UTC de la base de datos
             dt_utc = en_activo.hora_entrada.replace(tzinfo=pytz.UTC)
-            # La convertimos a la zona horaria de Madrid definida arriba
             ultima_entrada_local = dt_utc.astimezone(timezone_esp)
 
         return {
@@ -166,20 +169,15 @@ class ApiObtenerEstado(MethodView):
 def actualizar_fcm():
     user_id = get_jwt_identity()
     token_fcm = request.json.get('fcm_token')
-
     if not token_fcm:
         return jsonify({"msg": "Token requerido"}), 400
 
-    # Si este Token lo tenía otro usuario, se lo quitamos
     db.session.query(Trabajador).filter(Trabajador.fcm_token == token_fcm).update({Trabajador.fcm_token: None})
-
-    # Asignamos el token al usuario actual
     trabajador = Trabajador.query.get(int(user_id))
     if trabajador:
         trabajador.fcm_token = token_fcm
         db.session.commit()
         return jsonify({"msg": "Token actualizado correctamente"}), 200
-
     return jsonify({"msg": "Usuario no encontrado"}), 404
 
 @api_bp.route('/usuario/logout-fcm', methods=['POST'])
@@ -188,7 +186,7 @@ def logout_fcm():
     user_id = get_jwt_identity()
     trabajador = Trabajador.query.get(int(user_id))
     if trabajador:
-        trabajador.fcm_token = None # Borramos el token al salir
+        trabajador.fcm_token = None
         db.session.commit()
         return jsonify({"msg": "Sesión de notificaciones cerrada"}), 200
     return jsonify({"msg": "Error"}), 404
@@ -198,28 +196,24 @@ class ApiResumenMensual(MethodView):
     @jwt_required()
     def get(self):
         user_id = int(get_jwt_identity())
-        # Si no se pasa mes en la URL, usamos el actual
         mes = request.args.get('mes', datetime.now().strftime("%Y-%m"))
-
         resumen = calcular_resumen_mensual(user_id, mes)
-
-        # Si la función devuelve un error (tupla), lo gestionamos
         if isinstance(resumen, tuple):
             return jsonify(resumen[0]), resumen[1]
-
         return jsonify(resumen), 200
 
-# OBTENER LISTA DE TRABAJADORES
 @api_bp.route('/admin/trabajadores')
 class ApiAdminTrabajadores(MethodView):
     @jwt_required()
     def get(self):
         user_id = int(get_jwt_identity())
         trabajador_actual = Trabajador.query.get(user_id)
+        if not trabajador_actual:
+            return {"msg": "Acceso denegado: el usuario ya no existe"}, 404
+
         if trabajador_actual.rol.nombre_rol not in ['Administrador', 'Superadministrador']:
              return {"msg": "No autorizado"}, 403
         trabajadores = Trabajador.query.all()
-        # Devolvemos ID y Nombre para el Spinner
         return [{"id": t.id_trabajador, "nombre": f"{t.nombre} {t.apellidos}"} for t in trabajadores]
 
 @api_bp.route('/admin/registros')
@@ -229,26 +223,27 @@ class ApiAdminRegistros(MethodView):
         user_id = int(get_jwt_identity())
         trabajador_actual = Trabajador.query.get(user_id)
 
-        if trabajador_actual.rol.nombre_rol not in ['Administrador', 'Superadministrador']:
-            return {"msg": "No tienes permisos de administración suficientes"}, 403
-        # LÓGICA DE FILTRADO
-        id_filtro = request.args.get('id_trabajador')
+        # Validación de existencia para el administrador
+        if not trabajador_actual:
+            return {"msg": "Acceso denegado: el usuario ya no existe"}, 404
 
+        if trabajador_actual.rol.nombre_rol not in ['Administrador', 'Superadministrador']:
+            return {"msg": "No tienes permisos de administración"}, 403
+
+        id_filtro = request.args.get('id_trabajador')
         query = Registro.query
-        # Si nos llega un ID y no es 'null' (o vacío), filtramos
         if id_filtro and id_filtro != 'null':
             query = query.filter_by(id_trabajador=id_filtro)
+        
         registros = query.order_by(Registro.hora_entrada.desc()).all()
         resultado = []
         for r in registros:
-            # CÁLCULO DE TOTAL DE HORAS
             total_str = "En curso"
             if r.hora_salida:
                 diff = r.hora_salida - r.hora_entrada
                 total_seconds = int(diff.total_seconds())
-                hours = total_seconds // 3600
-                minutes = (total_seconds % 3600) // 60
-                total_str = f"{hours}h {minutes}m"
+                total_str = f"{total_seconds // 3600}h {(total_seconds % 3600) // 60}m"
+            
             resultado.append({
                 "empleado": f"{r.empleado.nombre} {r.empleado.apellidos}",
                 "entrada": r.hora_entrada.strftime('%d/%m %H:%M'),
@@ -262,7 +257,6 @@ class ApiAdminRegistros(MethodView):
 def get_geo_config():
     user_id = get_jwt_identity()
     trabajador = Trabajador.query.get(int(user_id))
-
     if not trabajador or not trabajador.empresa:
         return jsonify({"msg": "Empresa no encontrada"}), 404
 

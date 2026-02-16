@@ -15,7 +15,7 @@ def create_app(config_class=Config):
     app.config["OPENAPI_SWAGGER_UI_PATH"] = "/swagger-ui"
     app.config["OPENAPI_SWAGGER_UI_URL"] = "https://cdn.jsdelivr.net/npm/swagger-ui-dist/"
 
-    # 1. Inicializar extensiones con la app
+    # Inicializar extensiones con la app
     db.init_app(app)
     migrate.init_app(app, db)
     bootstrap.init_app(app)
@@ -26,7 +26,7 @@ def create_app(config_class=Config):
     # Inicializamos Smorest
     api = Api(app)
 
-    # 2. Configuración del Login
+    # Configuración del Login
     login_manager.login_view = 'auth.login'
     login_manager.login_message = "Por favor inicia sesión para acceder."
 
@@ -36,7 +36,7 @@ def create_app(config_class=Config):
     def load_user(user_id):
         return db.session.get(Trabajador, int(user_id))
 
-    # 3. Registrar los Blueprints
+    # Registrar los Blueprints
     from app.routes.auth import auth_bp
     from app.routes.main import main_bp
     from app.routes.empresas import empresas_bp
@@ -55,7 +55,7 @@ def create_app(config_class=Config):
     # Los blueprints de Smorest se registran en el objeto "api"
     api.register_blueprint(api_bp)
 
-    # 4. Crear tablas si no existen
+    # Crear tablas si no existen
     with app.app_context():
         db.create_all()
 

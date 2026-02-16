@@ -2,7 +2,7 @@ import firebase_admin
 from firebase_admin import credentials, messaging
 import os
 
-# Ruta al archivo que bajaste de Firebase
+# Ruta al archivo de Firebase
 path_to_json = os.path.join(os.path.dirname(__file__), '../firebase-service-account.json')
 
 if not firebase_admin._apps:

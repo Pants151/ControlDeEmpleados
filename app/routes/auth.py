@@ -78,7 +78,7 @@ def forgot_password():
     if trabajador:
         print(f"DEBUG: Usuario ENCONTRADO: ID {trabajador.id_trabajador}")
     else:
-        print(f"DEBUG: Usuario NO encontrado en la BD.") # <--- IMPORTANTE
+        print(f"DEBUG: Usuario NO encontrado en la BD.")
     if not trabajador:
         # Por seguridad, si el email no existe, respondemos con éxito igual
         return jsonify({"msg": "Si el email existe, se enviará una clave temporal"}), 200
