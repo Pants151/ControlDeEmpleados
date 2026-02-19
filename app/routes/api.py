@@ -2,7 +2,7 @@ from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from flask import request, jsonify
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 from app.extensions import db
 from app.models import Trabajador, Registro, Incidencia, Empresa, Franja
@@ -46,6 +46,33 @@ class ApiEmpresaConfig(MethodView):
             "nombre": empresa.nombrecomercial
         }
 
+# Método para modificar la empresa
+    @jwt_required()
+    def post(self):
+        user_id = int(get_jwt_identity())
+        trabajador_actual = Trabajador.query.get(user_id)
+
+        # Validar si es admin
+        if trabajador_actual.rol.nombre_rol not in ['Administrador', 'Superadministrador']:
+            abort(403, message="No tienes permisos de administración")
+
+        data = request.get_json()
+        empresa = Empresa.query.get(1)
+
+        if not empresa:
+            abort(404, message="Configuración de empresa no encontrada")
+
+        # Actualizamos los valores si se han enviado en el JSON
+        if 'radio' in data:
+            empresa.radio = float(data['radio'])
+        if 'lat' in data:
+            empresa.lat = float(data['lat'])
+        if 'lng' in data:
+            empresa.lng = float(data['lng'])
+
+        db.session.commit()
+        return {"msg": "Configuración de la empresa actualizada correctamente"}, 200
+
 @api_bp.route('/auth/change-password')
 class ApiChangePassword(MethodView):
     @jwt_required()
@@ -75,14 +102,11 @@ class ApiFicharEntrada(MethodView):
     def post(self, data):
         user_id = int(get_jwt_identity())
         trabajador = Trabajador.query.get(user_id)
-
-        if trabajador is None:
-            return jsonify({"msg": "Su usuario ya no existe en el sistema"}), 404
+        if trabajador is None: return jsonify({"msg": "Su usuario ya no existe"}), 404
 
         empresa = Empresa.query.get(1)
         distancia = calcular_distancia(data.get('lat'), data.get('lng'), empresa.lat, empresa.lng)
-        if distancia > empresa.radio:
-            abort(400, message=f"Fuera de radio ({int(distancia)}m)")
+        if distancia > empresa.radio: abort(400, message=f"Fuera de radio ({int(distancia)}m)")
 
         ahora_local = datetime.now(timezone_esp)
         dia_semana = ahora_local.weekday() + 1
@@ -96,7 +120,9 @@ class ApiFicharEntrada(MethodView):
         if Registro.query.filter_by(id_trabajador=user_id, hora_salida=None).first():
             abort(400, message="Ya tienes una entrada activa")
 
-        nuevo = Registro(id_trabajador=user_id, hora_entrada=datetime.utcnow())
+        # Usamos la hora de España directamente
+        hora_exacta_espana = ahora_local.replace(tzinfo=None)
+        nuevo = Registro(id_trabajador=user_id, hora_entrada=hora_exacta_espana)
         db.session.add(nuevo)
         db.session.commit()
         return {"msg": "Entrada registrada correctamente"}
@@ -109,20 +135,18 @@ class ApiFicharSalida(MethodView):
     def post(self, data):
         user_id = int(get_jwt_identity())
         trabajador = Trabajador.query.get(int(user_id))
-
-        if trabajador is None:
-            return jsonify({"msg": "Su usuario ya no existe en el sistema"}), 404
+        if trabajador is None: return jsonify({"msg": "Su usuario ya no existe"}), 404
 
         empresa = Empresa.query.get(1)
         distancia = calcular_distancia(data.get('lat'), data.get('lng'), empresa.lat, empresa.lng)
-        if distancia > empresa.radio:
-            abort(400, message=f"Fuera de radio para fichar salida ({int(distancia)}m)")
+        if distancia > empresa.radio: abort(400, message=f"Fuera de radio ({int(distancia)}m)")
 
         registro = Registro.query.filter_by(id_trabajador=user_id, hora_salida=None).first()
-        if not registro:
-            abort(400, message="No tienes una entrada activa para cerrar")
+        if not registro: abort(400, message="No tienes una entrada activa para cerrar")
 
-        registro.hora_salida = datetime.utcnow()
+        # ARREGLO DE HORA: Usamos la hora de España
+        hora_exacta_espana = datetime.now(timezone_esp).replace(tzinfo=None)
+        registro.hora_salida = hora_exacta_espana
         db.session.commit()
         return {"msg": "Salida registrada correctamente"}
 
@@ -154,14 +178,10 @@ class ApiObtenerEstado(MethodView):
     def get(self):
         user_id = int(get_jwt_identity())
         en_activo = Registro.query.filter_by(id_trabajador=user_id, hora_salida=None).first()
-        ultima_entrada_local = None
-        if en_activo:
-            dt_utc = en_activo.hora_entrada.replace(tzinfo=pytz.UTC)
-            ultima_entrada_local = dt_utc.astimezone(timezone_esp)
 
         return {
             "fichado": True if en_activo else False,
-            "ultima_entrada": ultima_entrada_local
+            "ultima_entrada": en_activo.hora_entrada if en_activo else None
         }
 
 @api_bp.route('/usuario/actualizar-fcm', methods=['POST'])
@@ -196,7 +216,11 @@ class ApiResumenMensual(MethodView):
     @jwt_required()
     def get(self):
         user_id = int(get_jwt_identity())
-        mes = request.args.get('mes', datetime.now().strftime("%Y-%m"))
+        mes = request.args.get('mes')
+
+        if not mes or mes == 'null':
+            mes = datetime.now(timezone_esp).strftime("%Y-%m")
+
         resumen = calcular_resumen_mensual(user_id, mes)
         if isinstance(resumen, tuple):
             return jsonify(resumen[0]), resumen[1]
@@ -214,7 +238,7 @@ class ApiAdminTrabajadores(MethodView):
         if trabajador_actual.rol.nombre_rol not in ['Administrador', 'Superadministrador']:
              return {"msg": "No autorizado"}, 403
         trabajadores = Trabajador.query.all()
-        return [{"id": t.id_trabajador, "nombre": f"{t.nombre} {t.apellidos}"} for t in trabajadores]
+        return [{"id_trabajador": t.id_trabajador, "nombre": f"{t.nombre} {t.apellidos}", "email": t.email} for t in trabajadores]
 
 @api_bp.route('/admin/registros')
 class ApiAdminRegistros(MethodView):
@@ -234,7 +258,7 @@ class ApiAdminRegistros(MethodView):
         query = Registro.query
         if id_filtro and id_filtro != 'null':
             query = query.filter_by(id_trabajador=id_filtro)
-        
+
         registros = query.order_by(Registro.hora_entrada.desc()).all()
         resultado = []
         for r in registros:
@@ -243,7 +267,7 @@ class ApiAdminRegistros(MethodView):
                 diff = r.hora_salida - r.hora_entrada
                 total_seconds = int(diff.total_seconds())
                 total_str = f"{total_seconds // 3600}h {(total_seconds % 3600) // 60}m"
-            
+
             resultado.append({
                 "empleado": f"{r.empleado.nombre} {r.empleado.apellidos}",
                 "entrada": r.hora_entrada.strftime('%d/%m %H:%M'),
@@ -267,3 +291,33 @@ def get_geo_config():
         "radio": empresa.radio,
         "nombre": empresa.nombrecomercial
     }), 200
+
+@api_bp.route('/mis-registros')
+class ApiMisRegistros(MethodView):
+    @jwt_required()
+    def get(self):
+        user_id = int(get_jwt_identity())
+        trabajador_actual = Trabajador.query.get(user_id)
+
+        if not trabajador_actual:
+            return {"msg": "Usuario no encontrado"}, 404
+
+        # Buscamos los registros de este usuario
+        registros = Registro.query.filter_by(id_trabajador=user_id).order_by(Registro.hora_entrada.desc()).all()
+
+        resultado = []
+        for r in registros:
+            total_str = "En curso"
+            if r.hora_salida:
+                diff = r.hora_salida - r.hora_entrada
+                total_seconds = int(diff.total_seconds())
+                total_str = f"{total_seconds // 3600}h {(total_seconds % 3600) // 60}m"
+
+            resultado.append({
+                "empleado": f"{trabajador_actual.nombre}",
+                "entrada": r.hora_entrada.strftime('%d/%m %H:%M'),
+                "salida": r.hora_salida.strftime('%H:%M') if r.hora_salida else "Activo",
+                "total": total_str
+            })
+
+        return resultado, 200

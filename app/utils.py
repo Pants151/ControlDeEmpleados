@@ -2,9 +2,10 @@ import math
 from functools import wraps
 from flask import abort
 from flask_login import current_user
-from datetime import datetime
+from datetime import datetime, timedelta
 from app.models import Registro, Franja, Trabajador
 import calendar
+import pytz
 
 # Función auxiliar para calcular duración
 def calcular_duracion(entrada, salida):
@@ -37,18 +38,22 @@ def superadmin_required(f):
 
 # Función de utilidad que recorre los fichajes del mes y los compara con el horario teórico.
 def calcular_resumen_mensual(user_id, mes_str):
-    # Parsear el mes (YYYY-MM) para obtener el rango de fechas
+    timezone_esp = pytz.timezone('Europe/Madrid')
+    ahora_madrid = datetime.now(timezone_esp)
+
+    # Si la app de Android nos manda 'null', forzamos el mes actual
+    if not mes_str or mes_str == 'null':
+        mes_str = ahora_madrid.strftime("%Y-%m")
+
     try:
         fecha_dt = datetime.strptime(mes_str, "%Y-%m")
         primer_dia = fecha_dt.replace(day=1, hour=0, minute=0, second=0)
         ultimo_dia_mes = calendar.monthrange(fecha_dt.year, fecha_dt.month)[1]
         ultimo_dia = fecha_dt.replace(day=ultimo_dia_mes, hour=23, minute=59, second=59)
 
-        # Formateamos el nombre del mes para que Android no muestre NULL
         nombres_meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
                          "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
         nombre_visual_mes = f"{nombres_meses[fecha_dt.month - 1]} {fecha_dt.year}"
-
     except Exception:
         return {"msg": "Formato de mes inválido"}, 400
 
@@ -56,7 +61,7 @@ def calcular_resumen_mensual(user_id, mes_str):
     if not trabajador:
         return {"msg": "Usuario no encontrado"}, 404
 
-    # Obtener todos los registros del mes
+    # 1. CÁLCULO DE HORAS REALES
     registros = Registro.query.filter(
         Registro.id_trabajador == user_id,
         Registro.hora_entrada >= primer_dia,
@@ -64,32 +69,56 @@ def calcular_resumen_mensual(user_id, mes_str):
     ).all()
 
     total_segundos_reales = 0
-    total_segundos_teoricos = 0
     dias_con_actividad = set()
 
     for r in registros:
         if r.hora_salida:
-            # Calculamos la diferencia exacta en segundos
             diff_real = r.hora_salida - r.hora_entrada
             total_segundos_reales += diff_real.total_seconds()
 
-        fecha_fichaje = r.hora_entrada.date()
-        if fecha_fichaje not in dias_con_actividad:
+            # EL ARREGLO ESTÁ AQUÍ:
+            # Si un fichaje cruza la medianoche (ej. de Jueves a Viernes),
+            # añadimos a la lista TANTO el jueves COMO el viernes.
+            dia_actual = r.hora_entrada.date()
+            dia_salida = r.hora_salida.date()
+            while dia_actual <= dia_salida:
+                dias_con_actividad.add(dia_actual)
+                dia_actual += timedelta(days=1)
+        else:
+            # Si está trabajando ahora mismo, solo metemos hoy
+            dias_con_actividad.add(r.hora_entrada.date())
+
+    # 2. CÁLCULO DE HORAS TEÓRICAS (Solo de los días que fichó)
+    total_segundos_teoricos = 0
+    if trabajador.idHorario:
+        for fecha_fichaje in dias_con_actividad:
             id_dia_semana = fecha_fichaje.weekday() + 1
             franja = Franja.query.filter_by(id_horario=trabajador.idHorario, id_dia=id_dia_semana).first()
 
             if franja and franja.hora_entrada and franja.hora_salida:
                 try:
-                    h_ent = datetime.strptime(franja.hora_entrada.strip(), "%H:%M")
-                    h_sal = datetime.strptime(franja.hora_salida.strip(), "%H:%M")
+                    h_ent = datetime.strptime(str(franja.hora_entrada).strip()[:5], "%H:%M")
+                    h_sal = datetime.strptime(str(franja.hora_salida).strip()[:5], "%H:%M")
+
+                    # Arreglo para turnos de noche
+                    if h_sal < h_ent:
+                        h_sal += timedelta(days=1)
+
                     total_segundos_teoricos += (h_sal - h_ent).total_seconds()
                 except ValueError:
                     pass
-            dias_con_actividad.add(fecha_fichaje)
 
-    # calculamos el total de horas reales como float puro
+    # 3. EMPAQUETAR DATOS PARA ANDROID Y WEB
     horas_reales_float = total_segundos_reales / 3600
     horas_teoricas_float = total_segundos_teoricos / 3600
+
+    # Solo damos horas extra si de verdad hizo más de las teóricas
+    segundos_extra = max(0, total_segundos_reales - total_segundos_teoricos)
+
+    def formatear(segundos):
+        h = int(segundos // 3600)
+        m = int((segundos % 3600) // 60)
+        return f"{h}h {m}min"
 
     return {
         "mes": nombre_visual_mes,
@@ -97,6 +126,7 @@ def calcular_resumen_mensual(user_id, mes_str):
         "horas_reales": round(horas_reales_float, 2),
         "diferencia": round(horas_reales_float - horas_teoricas_float, 2),
         "dias_trabajados": len(dias_con_actividad),
-        # Extra opcional por si quieres que Android lo pinte directo sin cálculos:
-        "horas_formateadas": f"{int(total_segundos_reales // 3600)}h {int((total_segundos_reales % 3600) // 60)}min"
+        "trabajado": formatear(total_segundos_reales),
+        "teorico": formatear(total_segundos_teoricos),
+        "extra": formatear(segundos_extra)
     }
