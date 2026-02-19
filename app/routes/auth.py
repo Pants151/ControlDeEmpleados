@@ -1,12 +1,10 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, session, request, jsonify
+from flask import Blueprint, render_template, redirect, url_for, flash, session, request, jsonify, current_app
 from flask_login import login_user, logout_user, login_required, current_user
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignature
 from flask_mail import Message
 from app.extensions import db, mail
 from app.models import Trabajador, Rol
 from app.forms import LoginForm, RegistroForm
-
-import random
-import string
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -70,40 +68,68 @@ def registro():
 def forgot_password():
     data = request.get_json()
     email = data.get('email')
-    print(f"DEBUG: Intentando recuperar para '{email}'")
+
     if not email:
         return jsonify({"msg": "El email es obligatorio"}), 400
-    # Buscamos al trabajador por su email
+
     trabajador = Trabajador.query.filter(Trabajador.email.ilike(email)).first()
-    if trabajador:
-        print(f"DEBUG: Usuario ENCONTRADO: ID {trabajador.id_trabajador}")
-    else:
-        print(f"DEBUG: Usuario NO encontrado en la BD.")
+
     if not trabajador:
-        # Por seguridad, si el email no existe, respondemos con éxito igual
-        return jsonify({"msg": "Si el email existe, se enviará una clave temporal"}), 200
-    # Generar una clave temporal aleatoria (letras y números)
-    nueva_clave = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
-    # Actualizar la contraseña en la Base de Datos
-    trabajador.password = nueva_clave
+        return jsonify({"msg": "Si el email existe, se enviará un enlace"}), 200
+
+    # Generar token con tiempo de caducidad
+    s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+    token = s.dumps(trabajador.email, salt=trabajador.passw)
+
+    # Crear el enlace a la aplicación web
+    enlace = url_for('auth.reset_password', email=trabajador.email, token=token, _external=True)
+
     try:
-        db.session.commit()
-        # Preparar el correo para Mailtrap
         msg = Message(
             subject="Recuperación de Contraseña - Control de Presencia",
             recipients=[trabajador.email],
             body=f"Hola {trabajador.nombre},\n\n"
-                 f"Has solicitado una recuperación de contraseña.\n"
-                 f"Tu nueva clave temporal es: {nueva_clave}\n\n"
-                 f"Por seguridad, cámbiala en cuanto accedas a la aplicación."
+                 f"Has solicitado restablecer tu contraseña.\n"
+                 f"Haz clic en el siguiente enlace (caduca en 1 hora):\n"
+                 f"{enlace}\n\n"
+                 f"Si no solicitaste este cambio, ignora este correo."
         )
         mail.send(msg)
-        print("DEBUG: Correo enviado correctamente a Mailtrap")
         return jsonify({"msg": "Correo enviado con éxito"}), 200
     except Exception as e:
-        db.session.rollback()
         print(f"DEBUG ERROR: {str(e)}")
-        return jsonify({"msg": "Error interno al procesar la solicitud"}), 500
+        return jsonify({"msg": "Error interno al enviar el correo"}), 500
+
+# La pantalla donde el usuario pone la contraseña nueva
+@auth_bp.route('/reset-password/<email>/<token>', methods=['GET', 'POST'])
+def reset_password(email, token):
+    if current_user.is_authenticated:
+        return redirect(url_for('main.index'))
+
+    trabajador = Trabajador.query.filter_by(email=email).first()
+    if not trabajador:
+        flash('Usuario no válido.')
+        return redirect(url_for('auth.login'))
+
+    s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+    try:
+        # Si ya la cambió, el hash es distinto y esto dará error (un solo uso real)
+        s.loads(token, salt=trabajador.passw, max_age=3600)
+    except SignatureExpired:
+        flash('El enlace ha caducado. Solicita uno nuevo.')
+        return redirect(url_for('auth.login'))
+    except BadTimeSignature:
+        flash('El enlace es inválido o ya ha sido utilizado.')
+        return redirect(url_for('auth.login'))
+
+    if request.method == 'POST':
+        nueva_pass = request.form.get('password')
+        trabajador.password = nueva_pass # Cambia el hash
+        db.session.commit()
+        flash('Tu contraseña ha sido actualizada correctamente.')
+        return redirect(url_for('auth.login'))
+
+    return render_template('reset_password.html', token=token, email=email)
 
 @auth_bp.route('/logout')
 @login_required
