@@ -104,7 +104,7 @@ def forgot_password():
 @auth_bp.route('/reset-password/<email>/<token>', methods=['GET', 'POST'])
 def reset_password(email, token):
     if current_user.is_authenticated:
-        return redirect(url_for('main.index'))
+        logout_user()
 
     trabajador = Trabajador.query.filter_by(email=email).first()
     if not trabajador:

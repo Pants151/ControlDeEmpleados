@@ -61,7 +61,7 @@ def calcular_resumen_mensual(user_id, mes_str):
     if not trabajador:
         return {"msg": "Usuario no encontrado"}, 404
 
-    # 1. CÁLCULO DE HORAS REALES
+    # CÁLCULO DE HORAS REALES
     registros = Registro.query.filter(
         Registro.id_trabajador == user_id,
         Registro.hora_entrada >= primer_dia,
@@ -76,9 +76,7 @@ def calcular_resumen_mensual(user_id, mes_str):
             diff_real = r.hora_salida - r.hora_entrada
             total_segundos_reales += diff_real.total_seconds()
 
-            # EL ARREGLO ESTÁ AQUÍ:
             # Si un fichaje cruza la medianoche (ej. de Jueves a Viernes),
-            # añadimos a la lista TANTO el jueves COMO el viernes.
             dia_actual = r.hora_entrada.date()
             dia_salida = r.hora_salida.date()
             while dia_actual <= dia_salida:
@@ -108,7 +106,7 @@ def calcular_resumen_mensual(user_id, mes_str):
                 except ValueError:
                     pass
 
-    # 3. EMPAQUETAR DATOS PARA ANDROID Y WEB
+    # EMPAQUETAR DATOS PARA ANDROID Y WEB
     horas_reales_float = total_segundos_reales / 3600
     horas_teoricas_float = total_segundos_teoricos / 3600
 

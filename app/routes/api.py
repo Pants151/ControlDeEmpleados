@@ -2,7 +2,7 @@ from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from flask import request, jsonify
-from datetime import datetime, timedelta
+from datetime import datetime
 import pytz
 from app.extensions import db
 from app.models import Trabajador, Registro, Incidencia, Empresa, Franja
@@ -247,19 +247,28 @@ class ApiAdminRegistros(MethodView):
         user_id = int(get_jwt_identity())
         trabajador_actual = Trabajador.query.get(user_id)
 
-        # Validación de existencia para el administrador
         if not trabajador_actual:
-            return {"msg": "Acceso denegado: el usuario ya no existe"}, 404
+            return {"msg": "Acceso denegado"}, 404
 
         if trabajador_actual.rol.nombre_rol not in ['Administrador', 'Superadministrador']:
-            return {"msg": "No tienes permisos de administración"}, 403
+            return {"msg": "No tienes permisos"}, 403
 
-        id_filtro = request.args.get('id_trabajador')
+        # Recogemos el ID del filtro de la URL
+        id_filtro_str = request.args.get('id_trabajador')
+
         query = Registro.query
-        if id_filtro and id_filtro != 'null':
-            query = query.filter_by(id_trabajador=id_filtro)
+
+        # Comprobamos que no sea nulo, ni vacío, ni "null" (texto)
+        if id_filtro_str and id_filtro_str.strip().lower() != 'null':
+            try:
+                # Forzamos la conversión a entero para que SQLAlchemy no falle
+                id_entero = int(id_filtro_str.strip())
+                query = query.filter(Registro.id_trabajador == id_entero)
+            except ValueError:
+                pass # Si no era un número válido, ignoramos el filtro
 
         registros = query.order_by(Registro.hora_entrada.desc()).all()
+
         resultado = []
         for r in registros:
             total_str = "En curso"
@@ -274,7 +283,8 @@ class ApiAdminRegistros(MethodView):
                 "salida": r.hora_salida.strftime('%H:%M') if r.hora_salida else "Activo",
                 "total": total_str
             })
-        return resultado
+
+        return resultado, 200
 
 @api_bp.route('/empresa/configuracion-geo', methods=['GET'])
 @jwt_required()
