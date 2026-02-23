@@ -2,6 +2,7 @@ from flask import Flask
 from config import Config
 from app.extensions import db, migrate, bootstrap, login_manager, jwt, mail
 from flask_smorest import Api
+from app.models import TokenBlocklist
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -22,6 +23,15 @@ def create_app(config_class=Config):
     login_manager.init_app(app)
     jwt.init_app(app)
     mail.init_app(app)
+    
+    # CONFIGURACIÓN DE LA LISTA NEGRA DE JWT (Revocación de tokens)
+    @jwt.token_in_blocklist_loader
+    def check_if_token_revoked(jwt_header, jwt_payload):
+        jti = jwt_payload["jti"]
+        # Busca en la base de datos si este JTI (ID único del token) está en la lista negra
+        with app.app_context():
+            token = db.session.query(TokenBlocklist.id).filter_by(jti=jti).scalar()
+        return token is not None # Si devuelve True, bloquea el acceso con un error 401
 
     # Inicializamos Smorest
     api = Api(app)

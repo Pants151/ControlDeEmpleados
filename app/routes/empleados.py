@@ -60,6 +60,10 @@ def nuevo_empleado():
 @login_required
 def editar_empleado(id):
     empleado = Trabajador.query.get_or_404(id)
+
+    # GUARDAMOS LA CONTRASEÑA VIEJA USANDO LA COLUMNA 'passw'
+    password_antigua = empleado.passw
+
     form = TrabajadorForm(obj=empleado)
 
     if request.method == 'GET':
@@ -76,8 +80,18 @@ def editar_empleado(id):
 
     if form.validate_on_submit():
         form.populate_obj(empleado)
+
+        # SI LA CONTRASEÑA EN EL FORMULARIO ESTABA VACÍA...
+        if not form.password.data or form.password.data.strip() == "":
+            # Le volvemos a poner el hash
+            empleado.passw = password_antigua
+        else:
+            # Si sí escribió una nueva, usamos @password.setter
+            empleado.password = form.password.data
+
         empleado.idRol = form.rol_id.data
         empleado.idHorario = form.horario_id.data
+
         db.session.commit()
         flash('Datos actualizados correctamente.')
         return redirect(url_for('empleados.listar_empleados'))

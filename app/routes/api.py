@@ -1,11 +1,11 @@
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt
 from flask import request, jsonify
 from datetime import datetime
 import pytz
 from app.extensions import db
-from app.models import Trabajador, Registro, Incidencia, Empresa, Franja
+from app.models import Trabajador, Registro, Incidencia, Empresa, Franja, TokenBlocklist
 from app.utils import calcular_distancia, calcular_resumen_mensual
 from app.schemas import (LoginSchema, TokenSchema, PresenceInputSchema,
                          IncidenciaInputSchema, EstadoResponseSchema, MessageSchema)
@@ -331,3 +331,16 @@ class ApiMisRegistros(MethodView):
             })
 
         return resultado, 200
+
+@api_bp.route('/auth/logout', methods=['POST'])
+@jwt_required()
+def logout_definitivo():
+    # Extraemos el identificador único (JTI) del token que está usando el móvil
+    jti = get_jwt()["jti"]
+
+    # Lo metemos en la lista negra
+    revoked_token = TokenBlocklist(jti=jti, created_at=datetime.utcnow())
+    db.session.add(revoked_token)
+    db.session.commit()
+
+    return jsonify({"msg": "Token revocado correctamente"}), 200
